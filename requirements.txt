@@ -1,0 +1,8 @@
+dash
+matplotlib 
+numpy
+pandas 
+python-dotenv
+requests
+scikit-learn
+seaborn
