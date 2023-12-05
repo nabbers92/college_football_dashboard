@@ -1,11 +1,11 @@
-"""Module querying and extracting data from CollegeFootballData.com"""
+# pull_and_dump.py
 
 import os
 import argparse
 import requests
 import pandas as pd
-import snowflake.connector
-from snowflake.connector.pandas_tools import write_pandas
+# import snowflake.connector
+# from snowflake.connector.pandas_tools import write_pandas
 from dotenv import load_dotenv
 load_dotenv()
 

@@ -1,7 +1,9 @@
 dash
+ipykernel
 matplotlib 
 numpy
-pandas 
+pandas
+psycopg2
 python-dotenv
 requests
 scikit-learn
