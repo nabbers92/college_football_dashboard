@@ -1,40 +1,46 @@
 # pull_and_dump.py
 
+from sqlalchemy import create_engine, URL
+import snowflake.connector
+from snowflake.connector.pandas_tools import write_pandas
 import os
 import argparse
 import requests
 import pandas as pd
-# import snowflake.connector
-# from snowflake.connector.pandas_tools import write_pandas
 from dotenv import load_dotenv
 load_dotenv()
 
 
 def pull_data_from_api(url, api_key, params, timeout=120):
     """
-    Extracts football data from an API endpoint using a provided URL and API key.
+    Extract data from an API and return a Pandas DataFrame.
 
-    Args:
-        url (str): The URL of the API endpoint to retrieve data from.
-        api_key (str): The API key for authenticating with the API.
-        timeout (int, optional): The maximum time (in seconds) to wait for the API
-            request to complete. Default is 120 seconds.
+    Parameters:
+    - url (str): The URL of the API endpoint.
+    - api_key (str): The API key to use for authentication.
+    - params (dict): A dictionary containing the parameters to be passed to the API.
+    - timeout (int): The timeout in seconds for the API request.
 
     Returns:
-        pd.DataFrame or None: A Pandas DataFrame containing the extracted data if the
-            API request is successful (status code 200), or None if there was an error
-            accessing the data.
+    - df (pandas.DataFrame): The DataFrame containing the extracted data.
+
+    The function makes a GET request to the specified API endpoint, passing the provided API key,
+    parameters, and timeout. If the request is successful, the response is parsed as JSON,
+    and the JSON data is converted to a Pandas DataFrame. The DataFrame is returned.
+
+    Example:
+    ```python
+    # Assuming url, api_key, params, and timeout are defined
+    df = pull_data_from_api(url, api_key, params, timeout)
+    ```
 
     Note:
-    - The function sends an HTTP GET request to the specified URL with the provided API key
-    in the 'Authorization' header.
-    - If the response status code is not 200, an error message is printed, and None is returned.
-    - The function assumes the API response is in JSON format and converts it into a Pandas
-    DataFrame using 'pd.json_normalize'.
+    The timeout parameter is optional and defaults to 120 seconds.
     """
+
     headers = {'Accept': 'application/json',
                'Authorization': f'Bearer {api_key}'}
-    params = {}
+
     response = requests.get(url, headers=headers,
                             params=params, timeout=timeout)
 
@@ -47,21 +53,75 @@ def pull_data_from_api(url, api_key, params, timeout=120):
             f"Failed to fetch data from API. Status code: {response.status_code}")
 
 
-def dump_to_snowflake(df, snowflake_conn, table_name):
+def dump_to_csv(df, output_file):
     """
-    Dump a Pandas DataFrame into a Snowflake table.
+    Dump a Pandas DataFrame to a CSV file.
 
     Parameters:
-    - df (pandas.DataFrame): The DataFrame containing the data to be inserted into Snowflake.
-    - snowflake_conn (SnowflakeConnection): An object representing the Snowflake connection details.
-    - table_name (str): The name of the Snowflake table where the data will be inserted.
+    - df (pandas.DataFrame): The DataFrame to be dumped to CSV.
+    - output_file (str): The path to the output CSV file.
 
-    Returns:
-    None
+    The function writes the DataFrame to a CSV file using the provided output file path.
 
-    The function connects to Snowflake using the provided connection details, creates a cursor,
-    and inserts the DataFrame records into the specified Snowflake table. The connection is
-    committed, and the connection is closed upon completion.
+    Example:
+    ```python
+    # Assuming df and output_file are defined
+    dump_to_csv(df, output_file)
+    ```
+
+    Note:
+    This function assumes that the DataFrame has been cleaned and formatted correctly.
+    """
+
+    df.to_csv(output_file, index=False)
+
+
+def dump_to_postgres(df, connect_params, table_name):
+    """
+    Dump a Pandas DataFrame to a PostgreSQL database.
+
+    Parameters:
+    - df (pandas.DataFrame): The DataFrame to be dumped to PostgreSQL.
+    - postgres_conn (sqlalchemy.engine.url.URL): The SQLAlchemy URL for the PostgreSQL connection.
+    - table_name (str): The name of the table to be created in PostgreSQL.
+
+    The function connects to PostgreSQL using the provided SQLAlchemy URL, creates a table with the
+    provided table name, and inserts the DataFrame into the table.
+
+    Example:
+    ```python
+    # Assuming df, postgres_conn, and table_name are defined
+    dump_to_postgres(df, postgres_conn, table_name)
+    ```
+
+    Note:
+    This function assumes that the DataFrame has been cleaned and formatted correctly.
+    """
+
+    url_object = URL.create(
+        "postgresql",
+        host=connect_params['host'],
+        port=connect_params['port'],
+        username=connect_params['username'],
+        password=connect_params['password'],
+        database=connect_params['database'],
+    )
+    engine = create_engine(url_object)
+
+    df.to_sql(table_name, engine, if_exists='replace')
+
+
+def dump_to_snowflake(df, snowflake_conn, table_name):
+    """
+    Dump a Pandas DataFrame to Snowflake.
+
+    Parameters:
+    - df (pandas.DataFrame): The DataFrame to be dumped to Snowflake.
+    - snowflake_conn (sqlalchemy.engine.url.URL): The SQLAlchemy URL for the Snowflake connection.
+    - table_name (str): The name of the table to be created in Snowflake.
+
+    The function connects to Snowflake using the provided SQLAlchemy URL, creates a table with the
+    provided table name, and inserts the DataFrame into the table.
 
     Example:
     ```python
@@ -70,8 +130,7 @@ def dump_to_snowflake(df, snowflake_conn, table_name):
     ```
 
     Note:
-    The SnowflakeConnection object should have the following attributes: login, password, host,
-    extra_dejson (a dictionary containing 'warehouse', 'database', and 'schema' keys).
+    This function assumes that the DataFrame has been cleaned and formatted correctly.
     """
 
     conn = snowflake.connector.connect(

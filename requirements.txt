@@ -8,3 +8,5 @@ python-dotenv
 requests
 scikit-learn
 seaborn
+snowflake-connector-python
+sqlalchemy
