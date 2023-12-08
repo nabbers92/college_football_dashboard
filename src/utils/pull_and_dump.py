@@ -210,80 +210,15 @@ def pull_and_dump_data(arg, api_key):
             'login': os.getenv('SNOWFLAKE_USER'),
             'password': os.getenv('SNOWFLAKE_PASS'),
             'host': os.getenv('SNOWFLAKE_ACCT'),
-            'extra_dejson': {
-                'warehouse': os.getenv('SNOWFLAKE_WAREHOUSE'),
-                'database': os.getenv('SNOWFLAKE_DB'),
-                'schema': os.getenv('SNOWFLAKE_SCHEMA'),
-            }
+            'warehouse': os.getenv('SNOWFLAKE_WAREHOUSE'),
+            'database': os.getenv('SNOWFLAKE_DB'),
+            'schema': os.getenv('SNOWFLAKE_SCHEMA'),
         }
         table_name = arg.get("Table", "default_table_name")
         dump_to_snowflake(df, snowflake_conn, table_name)
         return True
 
     df.to_csv(f'{arg["File"]}.csv')
-    return 'Success'
-
-
-def main(arg, api_key):
-    """
-    Main function to retrieve data from the College Football Data API, and optionally
-    load it into Snowflake data warehouse, for independent testing only. It is 
-    not used in the airflow pipeline.
-
-    Args:
-        arg (Namespace): Command-line arguments parsed using argparse, containing:
-            - Category: The category of data to fetch (e.g., 'games', 'teams', etc.).
-            - Search: The search field for filtering data (e.g., 'team', 'year', etc.).
-            - Value: The value to search for in the specified category.
-        api_key (str): Your API key for authenticating with the College Football Data API.
-
-    Returns:
-        bool: True if the data was successfully loaded into Snowflake (if 'to_snowflake'
-              is True), otherwise False.
-
-    Note:
-    - If 'arg.Export' is True, the function expects the following environment variables
-      to be set: SNOWFLAKE_USER, SNOWFLAKE_PASS, SNOWFLAKE_ACCT, SNOWFLAKE_WAREHOUSE,
-      SNOWFLAKE_DB, and SNOWFLAKE_SCHEMA for Snowflake connection details.
-
-    - The function calls 'extract_football_from_api' to fetch data from the College
-      Football Data API and 'dump_to_snowflake' to load the data into Snowflake.
-    """
-    url = f'https://api.collegefootballdata.com/{arg.Category}'
-    if arg.Search:
-        for n, search in enumerate(arg.Search):
-            if n == 0:
-                url += f'?{search}={arg.Value[n]}'
-            else:
-                url += f'&{search}={arg.Value[n]}'
-    print(f'Query URL: {url}')
-    df = pull_data_from_api(url, api_key)
-
-    if arg.Export:
-        print('To Snowflake...')
-        user = os.getenv('SNOWFLAKE_USER')
-        password = os.getenv('SNOWFLAKE_PASS')
-        account = os.getenv('SNOWFLAKE_ACCT')
-        warehouse = os.getenv('SNOWFLAKE_WAREHOUSE')
-        database = os.getenv('SNOWFLAKE_DB')
-        schema = os.getenv('SNOWFLAKE_SCHEMA')
-        role = os.getenv('SNOWFLAKE_ROLE')
-        conn = snowflake.connector.connect(
-            user=user,
-            password=password,
-            account=account,
-            warehouse=warehouse,
-            database=database,
-            schema=schema,
-            role=role,
-        )
-
-        success, _, _, _ = write_pandas(
-            conn, df, arg.Table, auto_create_table=True)
-        conn.close()
-        return success
-
-    df.to_csv(f'{arg.File}.csv')
     return 'Success'
 
 

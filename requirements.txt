@@ -1,12 +1,13 @@
-dash
 ipykernel
 matplotlib 
 numpy
 pandas
-psycopg2
+psycopg2-binary
 python-dotenv
 requests
 scikit-learn
 seaborn
 snowflake-connector-python
+snowflake-snowpark-python
 sqlalchemy
+streamlit
